@@ -1,0 +1,157 @@
+application:
+  subdomain: wavelog
+  upstreams:
+    - location: /
+      backend: http://wavelog.cloud.lazycat.app.wavelog.lzcapp:80
+      disable_trim_location: true
+  health_check:
+    # 首装需要初始化数据库（导入 schema + 迁移），给足启动等待时间。
+    test_url: http://wavelog.cloud.lazycat.app.wavelog.lzcapp:80/
+    start_period: 300s
+    timeout: 10s
+  injects:
+    # ── 网盘文件桥接（request 阶段）──────────────────────────────────────
+    # 官方《网盘文件选择器/自动拦截》要求 request 与 browser 两侧成对配置；
+    # /__lazycat_file_bridge/* 转发到 file.<boxdomain>，让「保存到网盘」真正落盘。
+    - id: lazycat-file-bridge
+      'on': request
+      auth_required: false
+      when:
+        - /__lazycat_file_bridge/*
+      do:
+        - src: >
+            const bridgePrefix = "/__lazycat_file_bridge";
+
+            const requestHost = String(ctx.request.host ||
+            "").split(":")[0].toLowerCase();
+
+            const firstDot = requestHost.indexOf(".");
+
+            const method = String(ctx.request.method || "").toUpperCase();
+
+            if (firstDot <= 0 || !requestHost.endsWith(".heiyu.space") ||
+            !["GET", "HEAD", "PUT"].includes(method)) {
+              ctx.response.send(["GET", "HEAD", "PUT"].includes(method) ? 400 : 405, "Invalid LazyCat file bridge request");
+              return;
+            }
+
+            const boxDomain = requestHost.slice(firstDot + 1);
+
+            ctx.headers.del("Origin");
+
+            ctx.headers.del("Referer");
+
+            ctx.proxy.to("https://file." + boxDomain, { path: "/files/home" +
+            ctx.request.path.slice(bridgePrefix.length), query:
+            ctx.request.raw_query, use_target_host: true, timeout_ms: 120000,
+            on_fail: "error" });
+    # ── 官方网盘文件选择器（browser 阶段）────────────────────────────────
+    # Wavelog 的 ADIF 导入是 <input type=file>，导出是 a[download]/表单下载，
+    # 两类入口交给官方选择器接管。脚本取自官方页面（sha256 4da22e7d…恒定）。
+    # 保持默认 auth_required=true：本应用页面不公开（无 public_path），
+    # 匿名请求拿不到 HTML；已登录的评审客户端照常执行。
+    - id: open-save-chooser
+      'on': browser
+      when:
+        - /*
+      do:
+        - src: >-
+            file:///lzcapp/pkg/content/lazycat-injects/lzc-file-chooser-inject.js
+          params:
+            diskRoot: /_lzc/files/home
+            fileBridgeRoot: /__lazycat_file_bridge
+            fallbackMime: application/octet-stream
+            locale: auto
+            hooks:
+              fileSystemAccess: true
+              fileInput: true
+              downloadAnchor: true
+    # ── 免密登录（browser 阶段，自写注入）────────────────────────────────
+    # Wavelog 自带账号体系（admin 由首次初始化脚本建好）。在登录页自动填充并
+    # 提交一次；右下角提供「使用其他账号登录 / 启用自动登录」控件，避免把
+    # 用户钉死在同一个账号上。凭据与初始化脚本使用同一组固定值。
+    - id: wavelog-login-autofill
+      'on': browser
+      auth_required: false
+      when:
+        - /user/login
+        - /user/login*
+        - /index.php/user/login
+        - /index.php/user/login*
+      do:
+        - src: file:///lzcapp/pkg/content/lazycat-injects/wavelog-login-autofill.js
+          params:
+            user: admin
+            password: Wavelog@Lazycat2026
+services:
+  db:
+    image: registry.lazycat.cloud/wans/library/mariadb:6183779fff159d93
+    command: >-
+      mariadbd --innodb-file-per-table=1 --lower-case-table-names=0
+      --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
+    environment:
+      - MARIADB_RANDOM_ROOT_PASSWORD=yes
+      - MYSQL_DATABASE=wavelog
+      - MYSQL_USER=wavelog
+      - MYSQL_PASSWORD=wavelog_lzc_db_2026
+      - TZ=Asia/Shanghai
+    healthcheck:
+      # mariadb 官方镜像自带 healthcheck.sh；确认库真的可用，而不是只看进程存在
+      test:
+        - CMD
+        - healthcheck.sh
+        - --connect
+        - --innodb_initialized
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 300s
+    binds:
+      - "/lzcapp/var/db:/var/lib/mysql"
+  wavelog:
+    image: registry.lazycat.cloud/wans/wavelog/wavelog:f0e0e2564834f719
+    depends_on:
+      - db
+    environment:
+      - TZ=Asia/Shanghai
+      # 基础地址：部署时由平台替换为应用真实域名；初始化脚本会写入 CI 配置并在每次启动刷新
+      - LZC_BASE_URL=https://${LAZYCAT_APP_DOMAIN}/
+      - LZC_DB_HOST=db.cloud.lazycat.app.wavelog.lzcapp
+      - LZC_DB_PORT=3306
+      - LZC_DB_NAME=wavelog
+      - LZC_DB_USER=wavelog
+      - LZC_DB_PASS=wavelog_lzc_db_2026
+      - LZC_ADMIN_USER=admin
+      - LZC_ADMIN_PASS=Wavelog@Lazycat2026
+      - LZC_ADMIN_MAIL=admin@example.com
+      - LZC_ADMIN_CALL=LZC
+      - LZC_ADMIN_LOCATOR=PM01AA
+      - LZC_ADMIN_FIRSTNAME=管理员
+      - LZC_ADMIN_LASTNAME=账号
+      # timezone id 131 = (GMT+08:00)-Beijing（上游 timezones 表主键）
+      - LZC_ADMIN_TZ=131
+      # DXCC 318 = China
+      - LZC_ADMIN_DXCC=318
+      - LZC_ADMIN_CITY=Shanghai
+      # 语言取值 = 上游语言表的 folder 名（chinese_simplified ⇒ gettext zh_CN）
+      - LZC_ADMIN_LANG=chinese_simplified
+    # 【2026-10-14】弃用 setup_script：实测首装约 1/4 概率触发 lzcinit 交接 panic
+    # （`panic: waitid: no child processes`，容器 Exited(2) 且平台不自动拉起）。
+    # 改为自持启动链（与 misago / alfio / bar-assistant 已上架包同模式）：
+    # /bin/sh boot.sh → 初始化 → exec 原始 entrypoint(cron+apache)。
+    entrypoint: /bin/sh
+    command: /lzcapp/pkg/content/init/boot.sh
+    binds:
+      # 配置（CI_ENV=docker 的 config/database/gettext）与上传数据都放在 /lzcapp/var 下持久化。
+      # 注意只挂 docker 子目录：application/config 根目录里是镜像自带的 CI 配置文件。
+      - "/lzcapp/var/wavelog/config:/var/www/html/application/config/docker"
+      - "/lzcapp/var/wavelog/uploads:/var/www/html/uploads"
+      - "/lzcapp/var/wavelog/userdata:/var/www/html/userdata"
+      - "/lzcapp/var/wavelog/backup:/var/www/html/backup"
+      - "/lzcapp/var/wavelog/eqsl:/var/www/html/images/eqsl_card_images"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 300s

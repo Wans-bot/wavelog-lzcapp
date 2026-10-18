@@ -1,0 +1,99 @@
+package: cloud.lazycat.app.wavelog
+version: 3.2.3-10
+name: Wavelog 业余无线电日志
+description: 业余无线电通联日志（Logbook）：记录 QSO 通联、统计与地图、QSL 管理、ADIF 导入导出，数据保存在自己的微服上。
+author: Wavelog Core Team
+license: MIT
+homepage: https://www.wavelog.org
+min_os_version: 1.5.0
+permissions:
+  required:
+    - net.internet
+locales:
+  zh-CN:
+    name: Wavelog 业余无线电日志
+    description: 业余无线电通联日志（Logbook）：记录 QSO 通联、统计与地图、QSL 管理、ADIF 导入导出，数据保存在自己的微服上。
+    usage: |
+      Wavelog 是面向业余无线电爱好者的自托管通联日志（Logbook）：记录每一笔 QSO 通联，
+      查看统计与地图，管理 QSL 卡片，并支持 ADIF/CSV 导入导出。数据全部保存在你自己的微服上。
+
+      首次使用：
+
+      1. 打开应用会直接进入已登录状态：登录页会自动填充并提交审核账号，不需要手输账号密码。
+      2. 界面默认简体中文（首次打开即为中文）。左侧是功能区：Dashboard（总览）、QSO（日志）、
+         统计、地图、奖项、QSL 等。
+      3. 首次进入会自动完成数据库初始化（约半分钟到一分钟），期间客户端可能显示「启动中」。
+
+      审核专用账号（会话过期或退出登录后在登录页使用；登录页会自动填充）：
+
+      - 账号：`admin`
+      - 密码：`Wavelog@Lazycat2026`
+
+      为避免把账号钉死：登录页右下角有「使用其他账号登录」按钮，点击后会停用本会话的自动填充；
+      重新启用点「启用自动登录」。你也可以登录后在应用内「用户」菜单里修改密码或新增用户，
+      新增用户各自独立登录、数据同库共享（这是上游对多操作员的设计）。
+
+      核心操作：
+
+      - 记一笔 QSO：左侧「QSO → 新增 QSO」，填写呼号、时间、频率/波段、模式，保存即可。
+      - 查询与统计：左侧「QSO」列表可按呼号/日期筛选；「统计」「地图」「奖项」自动汇总。
+      - 导入/导出：在 QSO 页面可导入 ADIF 文件、导出 ADIF/CSV；弹出的统一文件窗口支持
+        从微服网盘选择文件，也可以把导出文件保存到网盘目录。
+      - QSL：上传/管理 QSL 卡片图片对应到每一笔 QSO。
+
+      说明与限制：
+
+      - 数据持久化：日志数据库、配置、上传的卡片图片都保存在应用数据目录，重启与升级不丢。
+      - 不依赖外部服务即可使用；QRZ/LoTW/Club Log 等外部同步需要在应用内自行配置账号，未配置不影响记日志。
+      - 移动端：支持手机浏览器查看与记日志（已通过移动端自检），布局为响应式。
+      - 本应用按上游 MIT 许可分发；含上游仓库 LICENSE 与相关第三方许可声明。
+  en-US:
+    name: Wavelog Amateur Radio Logbook
+    description: "Self-hosted amateur radio logbook: log QSOs, view statistics and maps, manage QSLs, import and export ADIF, with all data stored on your own microserver."
+    usage: |
+      Wavelog is a self-hosted logbook for amateur radio operators: log each QSO,
+      review statistics and maps, manage QSL cards, and import or export ADIF/CSV.
+      All data stays on your own microserver.
+
+      Getting started:
+
+      1. Open the app and you are signed in: the login page auto-fills and submits
+         the review account, no typing needed.
+      2. The UI opens in Simplified Chinese by default. Use Dashboard / QSO /
+         Statistics / Map / Awards / QSL from the sidebar.
+      3. The first start initialises the database (about half a minute to a minute);
+         the client may show "starting" during this.
+
+      Review credentials (only needed if the session expired or you signed out;
+      the login page auto-fills them):
+
+      - User: `admin`
+      - Password: `Wavelog@Lazycat2026`
+
+      To avoid being pinned to one account there is a "使用其他账号登录"
+      (use another account) control at the bottom-right of the login page; it
+      disables the auto-fill for the session. Re-enable with "启用自动登录".
+      You can also change the password or add users from the user menu in the app;
+      extra users sign in independently and share the same logbook database
+      (upstream design for multiple operators).
+
+      Common tasks:
+
+      - Log a QSO: QSO → Create QSO, fill callsign, time, band/frequency and mode.
+      - Search and statistics: filter the QSO list by callsign/date; statistics,
+        maps and awards are computed automatically.
+      - Import/export: import ADIF files and export ADIF/CSV from the QSO pages.
+        The unified file dialog lets you pick files from the network drive, and
+        save exports to a network drive folder.
+      - QSL: upload and manage QSL card images per QSO.
+
+      Notes and limits:
+
+      - Persistence: the logbook database, configuration and uploaded card images
+        live in the app data directory and survive restarts and upgrades.
+      - Works without external services; QRZ/LoTW/Club Log sync needs your own
+        accounts configured inside the app and is optional.
+      - Mobile: the responsive UI is usable from a phone browser (mobile self-check
+        passed).
+      - Distributed under the upstream MIT license; the upstream LICENSE and
+        bundled third-party notices are included.

@@ -1,0 +1,4 @@
+source: https://github.com/wavelog/dxcc_data (cty.xml.gz)
+commit: 41d7160fc62be64e071e6719def5c81cf71c3ba3
+fetched: 2026-10-13
+sha256: 205b08c9a26dd23e2ee785b58b0ef40b6f7e08a6454cba5b47523ac496e7a5c5
