@@ -21,7 +21,7 @@ images:
   - id: app
     target: service
     service: wavelog
-    source: wavelog/wavelog
+    source: ghcr.io/wavelog/wavelog
     channel: stable
     tag_regex: '^v?\d+\.\d+\.\d+$'
     sort: semver
